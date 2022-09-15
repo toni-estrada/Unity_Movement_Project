@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
@@ -7,35 +5,36 @@ public class PlayerCamera : MonoBehaviour
 
     public float sensitivityX;
     public float sensitivityY;
+    private float m_RotationX;
+    private float m_RotationY;
 
     public Transform orientation;
-
-    private float RotationX;
-    private float rotationY;
-    
     
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        // Mouse input
-        float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensitivityX;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensitivityY;
+        Rotate();
+    }
 
-        rotationY += mouseX;
-        RotationX -= mouseY;
-        RotationX = Mathf.Clamp(RotationX, -90f, 90f);
+    private void Rotate()
+    {
+        // GETTING MOUSE INPUTS
+        float mouseX = Input.GetAxisRaw("Mouse X") * Time.fixedDeltaTime * sensitivityX;
+        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.fixedDeltaTime * sensitivityY;
+
+        m_RotationY += mouseX;
+        m_RotationX -= mouseY;
+        m_RotationX = Mathf.Clamp(m_RotationX, -90f, 90f);
         
-        // Rotate camera and orientation
-        transform.rotation = Quaternion.Euler(RotationX, rotationY, 0);
-        orientation.rotation = Quaternion.Euler(0, rotationY, 0);
-        
-        
+        // ROTATE CAMERA AND ORIENTATION
+        transform.rotation = Quaternion.Euler(m_RotationX, m_RotationY, 0);
+        orientation.rotation = Quaternion.Euler(0, m_RotationY, 0);
     }
 }
