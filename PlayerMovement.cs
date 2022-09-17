@@ -2,19 +2,32 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement")] 
-    public float movementSpeed;
-    public Transform orientation;
-    public float groundDrag;
-    public float jumpForce;
-    public float jumpCooldown;
-    public float airMultiplier;
-    private bool m_ReadyToJump;
+    
     private float m_HorizontalInput;
     private float m_VerticalInput;
     private Vector3 m_MoveDirection;
     private Rigidbody m_Rb;
 
+    [Header("Movement")] 
+    public float walkSpeed;
+    public float sprintSpeed;
+    private float m_MovementSpeed;
+    public Transform orientation;
+    public float groundDrag;
+    public MovementState state;
+
+    [Header("Jump")]
+    public float jumpForce;
+    public float jumpCooldown;
+    public float airMultiplier;
+    private bool m_ReadyToJump;
+
+    [Header("Crouch")] 
+    public float crouchSpeed;
+    public float crouchYScale;
+    private float m_StartYScale;
+    
+    
     [Header("Ground Check")] 
     public float playerHeight;
     public LayerMask whatIsGround;
@@ -22,14 +35,23 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("KeyBinds")] 
     public KeyCode jumpKey = KeyCode.Space;
-    
-    
+    public KeyCode sprintKey = KeyCode.LeftShift;
+    public KeyCode crouchKey = KeyCode.C;
+
+    public enum MovementState
+    {
+        Sprinting,
+        Walking,
+        Crouching,
+        Air
+    }
     
     // Start is called before the first frame update
     private void Start()        
     {
         m_Rb = GetComponent<Rigidbody>();
         m_Rb.freezeRotation = true;
+        m_StartYScale = transform.localScale.y;
         ResetJump();
     }
 
@@ -40,6 +62,7 @@ public class PlayerMovement : MonoBehaviour
         MyInput();
         SpeedControl();
         HandleDrag();
+        StateHandler();
     }
 
     private void FixedUpdate()
@@ -60,6 +83,7 @@ public class PlayerMovement : MonoBehaviour
             Jump();
             Invoke(nameof(ResetJump), jumpCooldown);
         }
+        Crouching();
     }
     
     private void MovePlayer()      
@@ -70,11 +94,11 @@ public class PlayerMovement : MonoBehaviour
         {
             // ON GROUND
             case true:
-                m_Rb.AddForce(m_MoveDirection.normalized * (movementSpeed * 10f), ForceMode.Force);
+                m_Rb.AddForce(m_MoveDirection.normalized * (m_MovementSpeed * 10f), ForceMode.Force);
                 break;
             // IN AIR
             case false:
-                m_Rb.AddForce(m_MoveDirection.normalized * (movementSpeed * 10f * airMultiplier), ForceMode.Force);
+                m_Rb.AddForce(m_MoveDirection.normalized * (m_MovementSpeed * 10f * airMultiplier), ForceMode.Force);
                 break;
                 
         }
@@ -86,9 +110,9 @@ public class PlayerMovement : MonoBehaviour
         // LIMITS THE VELOCITY OF THE PLAYER'S MOVEMENT
         var cachedVelocity = m_Rb.velocity;
         var flatVelocity = new Vector3(cachedVelocity.x, 0f, cachedVelocity.z);
-        if (flatVelocity.magnitude > movementSpeed)
+        if (flatVelocity.magnitude > m_MovementSpeed)
         {
-            var limitedVelocity = flatVelocity.normalized * movementSpeed;
+            var limitedVelocity = flatVelocity.normalized * m_MovementSpeed;
             m_Rb.velocity = new Vector3(limitedVelocity.x, cachedVelocity.y, limitedVelocity.z);
         }
 
@@ -114,5 +138,45 @@ public class PlayerMovement : MonoBehaviour
             m_Rb.drag = groundDrag;
         else
             m_Rb.drag = 0;
+    }
+
+    private void StateHandler()
+    {
+        // UPDATES THE PLAYER'S CURRENT MOVEMENT STATE AND APPLIES MOVE SPEED
+        if (m_Grounded && Input.GetKey(sprintKey))
+        {
+            state = MovementState.Sprinting;
+            m_MovementSpeed = sprintSpeed;
+        }
+        else if (m_Grounded)
+        {
+            state = MovementState.Walking;
+            m_MovementSpeed = walkSpeed;
+        }
+        else
+        {
+            state = MovementState.Air;
+        }
+
+        if (Input.GetKey(crouchKey))
+        {
+            state = MovementState.Crouching;
+            m_MovementSpeed = crouchSpeed;
+        }
+    }
+
+    private void Crouching()
+    {
+        var cachedPlayerScale = transform.localScale;
+        if (Input.GetKeyDown(crouchKey))
+        {
+            transform.localScale = new Vector3(cachedPlayerScale.x, crouchYScale, cachedPlayerScale.z);
+            m_Rb.AddForce(Vector3.down * 5f, ForceMode.Impulse); // FORCES THE PLAYER DOWN WHEN CROUCHING INSTEAD MIDAIR
+        }
+
+        if (Input.GetKeyUp(crouchKey))
+        {
+            transform.localScale = new Vector3(cachedPlayerScale.x, m_StartYScale, cachedPlayerScale.z);
+        }
     }
 }
