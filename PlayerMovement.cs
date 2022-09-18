@@ -157,8 +157,9 @@ public class PlayerMovement : MonoBehaviour
         {
             state = MovementState.Air;
         }
-
-        if (Input.GetKey(crouchKey))
+        
+        // ONLY ALLOW THE SPEED TO BE APPLIED WHEN GROUNDED
+        if (m_Grounded && Input.GetKey(crouchKey))
         {
             state = MovementState.Crouching;
             m_MovementSpeed = crouchSpeed;
@@ -168,10 +169,16 @@ public class PlayerMovement : MonoBehaviour
     private void Crouching()
     {
         var cachedPlayerScale = transform.localScale;
-        if (Input.GetKeyDown(crouchKey))
+        // FORCES THE PLAYER DOWN WHEN CROUCHING INSTEAD OF CROUCHING MIDAIR
+        if (m_Grounded && Input.GetKeyDown(crouchKey))
         {
             transform.localScale = new Vector3(cachedPlayerScale.x, crouchYScale, cachedPlayerScale.z);
-            m_Rb.AddForce(Vector3.down * 5f, ForceMode.Impulse); // FORCES THE PLAYER DOWN WHEN CROUCHING INSTEAD MIDAIR
+            m_Rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
+        }
+        //ALLOWS THE PLAYER TO CROUCH MIDAIR WITHOUT HAVING FORCE APPLIED DOWNWARD
+        else if (!m_Grounded && Input.GetKeyDown(crouchKey))
+        {
+            transform.localScale = new Vector3(cachedPlayerScale.x, crouchYScale, cachedPlayerScale.z);
         }
 
         if (Input.GetKeyUp(crouchKey))
